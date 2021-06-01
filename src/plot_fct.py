@@ -150,13 +150,18 @@ def plot_mse_results(df_mse,
 
 def plot_beta_results(df_beta, betaT,
                       filter_list=["ALR+LC", "ILR+LC", "ONLY Second LC", "ONLY Second ILR",
-                                   "DIR+LC", "KIV+KIV", "KIVmanual", "ILR+ILR", "ONLY Second KIV"]):
+                                   "DIR+LC", "KIV+KIV", "KIVmanual", "ILR+ILR", "ONLY Second KIV"],
+                      beta_zero=False
+                      ):
     """plot results coming out from the multiple application of running all methods,
     please note that betaT is in ilr coordinates and will be translated to log in the first step
     """
 
     fig = go.Figure()
-    num_coef_list = set((np.abs(betaT) > 0.2) * np.array(range(len(betaT))))
+    if beta_zero:
+        num_coef_list = set((np.abs(betaT) < 0.2) * np.array(range(len(betaT)))) - {0}
+    else:
+        num_coef_list = set((np.abs(betaT) > 0.2) * np.array(range(len(betaT))))
     mask = df_beta["Method"].isin(filter_list)
     for num_coef in num_coef_list:
         fig.add_trace(
@@ -164,8 +169,10 @@ def plot_beta_results(df_beta, betaT,
                    name=str(num_coef) + ". Beta (Estimates)")
 
         )
-        fig.add_hline(y=betaT[num_coef], line_dash="dash", annotation_text=str(num_coef) + " Ground Truth")
-
+        if not beta_zero:
+            fig.add_hline(y=betaT[num_coef], line_dash="dash", annotation_text=str(num_coef) + " Ground Truth")
+    if beta_zero:
+        fig.add_hline(y=0, line_dash="dash", annotation_text="Ground Truth")
     fig.update_layout(yaxis=dict(title="Beta Coefficient"))
     fig = update_layout(fig)
 

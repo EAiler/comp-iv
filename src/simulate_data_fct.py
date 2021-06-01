@@ -118,14 +118,12 @@ def sim_FS_lognormal(key,
     dispersion = c_X
     key, subkey = jax.random.split(key)
     confounder = jax.random.uniform(subkey, (n,), minval=0.2, maxval=3)
-    #confounder = confounder
 
     # error
     key, subkey1, subkey2 = jax.random.split(key, 3)
 
     # simulate Z
     key, subkey = jax.random.split(key)
-    #Z_sim = jax.random.uniform(subkey, (n, num_inst), minval=1, maxval=10)
     Z_sim = jax.random.uniform(subkey, (n, num_inst), minval=1, maxval=Z_max)
     # simulate x
     Z_influence = Z_sim@alphaT
@@ -136,9 +134,7 @@ def sim_FS_lognormal(key,
     #mu = np.exp(log_mu)  # clip the 0 -> not allowed as parameters
     from helper_fct import multi_negative_binomial
     X_sim = multi_negative_binomial(p, mu, Sigma, dispersion, n, ps=ps)
-    #print("Without confounding")
-    #print(np.round(X_sim[:10, :], 2))
-    # power transformation with alpha
+
     X_power = np.empty((p,))
     confounder_perturb = np.empty((p, ))
     for i in range(n):
@@ -146,9 +142,6 @@ def sim_FS_lognormal(key,
         X_power = np.vstack([X_power, cmp.perturb(X_sim[i, :], con)])
         confounder_perturb = np.vstack([confounder_perturb, con])
 
-    #print("With perturbation")
-    #print(np.round(X_power[1:10, :], 2))
-    #X_n0 = two_sls.LinearInstrumentModel.add_term_to_zeros(X_power)
     X_sim_ilr = cmp.ilr(X_power[1:, :])
 
     return Z_sim, X_power[1:, :], X_sim_ilr, confounder_perturb[1:, :]
@@ -174,21 +167,21 @@ def sim_IV_lognormal_linear(key,
     """Simulate IV setup with ilr linearity in all components """
     Z_sim, X_sim, X_sim_ilr, confounder = sim_FS_lognormal(key, n, p, num_inst, mu_c, alpha0, alphaT, c_X, ps, Z_max)
     # derive Y variable
-    confounder_n0 = two_sls.LinearInstrumentModel.add_term_to_zeros(confounder)
-    X_sim = two_sls.LinearInstrumentModel.add_term_to_zeros(X_sim)
+    confounder_n0 = LinearInstrumentModel.add_term_to_zeros(confounder)
+    X_sim = LinearInstrumentModel.add_term_to_zeros(X_sim)
     Y_sim = beta0 + np.log(X_sim) @ betaT + np.log(confounder_n0) @ c_Y
 
     # compute intervention set up
     key, subkey = jax.random.split(key)
     _, X_star, X_star_ilr, _ = sim_FS_lognormal(key, num_star, p, num_inst, mu_c, alpha0, alphaT, c_X, ps, Z_max)
-    X_star = two_sls.LinearInstrumentModel.add_term_to_zeros(X_star)
+    X_star = LinearInstrumentModel.add_term_to_zeros(X_star)
     Y_star = np.array([])
     num = 80
     for _ in range(num):
         key, subkey = jax.random.split(key, )
         confounder_interim = jax.random.uniform(subkey, (num_star,), minval=0.2, maxval=3)
         X_perturb = np.array([cmp.power(mu_c, confounder_interim[i]) for i in range(num_star)])
-        X_perturb = two_sls.LinearInstrumentModel.add_term_to_zeros(X_perturb, add_term=0.001)
+        X_perturb = LinearInstrumentModel.add_term_to_zeros(X_perturb, add_term=0.001)
         Y_star_step = beta0 + np.log(X_star) @ betaT + np.log(X_perturb) @ c_Y
         Y_star = np.append(Y_star, Y_star_step)
     Y_star = Y_star.reshape((num, num_star)).mean(axis=0)

@@ -157,11 +157,11 @@ def run_methods_confidence_interval(key, num_iteration,
     beta_all_2 = [V.T @ i if i is not None else np.repeat(np.nan, p) for i in beta_all]
     df_beta = pd.DataFrame(zip(title_all, beta_all_2), columns=["Method", "Beta"])
 
-    betaT_log = V.T @betaT
+    #betaT_log = V.T @betaT
 
     fig_mse = plot_mse_results(df_mse)
     fig_mse.show()
-    fig_beta = plot_beta_results(df_beta, betaT_log)
+    fig_beta = plot_beta_results(df_beta, betaT)
     fig_beta.show()
 
 
@@ -370,7 +370,7 @@ def run_diversity_estimation_methods(Z, X, Y, Ytrue=None, methods=["OLS", "2SLS"
     X, _, _ = whiten_data(X)
     Y, mu_y, mu_std = whiten_data(Y)
     if Ytrue is not None:
-        ytrue = (Ytrue - mu_y)/mu_std
+        Ytrue = (Ytrue - mu_y)/mu_std
 
     z = onp.array(Z).squeeze()
     y = onp.array(Y).squeeze()
@@ -417,7 +417,7 @@ def run_diversity_estimation_methods(Z, X, Y, Ytrue=None, methods=["OLS", "2SLS"
         xstar_bound = None
         results = None
 
-    return x, y, ytrue, xstar, xstar_bound, ystar_ols, ystar_2sls, ystar_kiv, results
+    return x, y, Ytrue, xstar, xstar_bound, ystar_ols, ystar_2sls, ystar_kiv, results
 
 
 
