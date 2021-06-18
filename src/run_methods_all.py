@@ -271,64 +271,64 @@ def run_methods_all(Z_sim, X_sim, Y_sim, X_star, Y_star, beta_ilr_true,
     title_all.append(title)
     print("")
 
-    if fit_kiv:
-        print("---------------------------------------------------------------------------------------------")
-        print("<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<< 2SLS - Kernel Regression KIV >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>")
+    #if fit_kiv:
+    print("---------------------------------------------------------------------------------------------")
+    print("<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<< 2SLS - Kernel Regression KIV >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>")
 
-        X_sim_ilr = cmp.ilr(X_sim)
-        X_star_ilr = cmp.ilr(X_star)
+    X_sim_ilr = cmp.ilr(X_sim)
+    X_star_ilr = cmp.ilr(X_star)
 
-        def whiten_data(X):
-            mu, std = X.mean(axis=0), X.std(axis=0)
-            X_std = (X - mu) / std
-            return X_std, mu, std
+    def whiten_data(X):
+        mu, std = X.mean(axis=0), X.std(axis=0)
+        X_std = (X - mu) / std
+        return X_std, mu, std
 
-        XX, mu_x, std_x = whiten_data(X_sim_ilr)
-        YY, mu_y, std_y = whiten_data(Y_sim)
-        ZZ, mu_z, std_z = whiten_data(Z_sim)
+    XX, mu_x, std_x = whiten_data(X_sim_ilr)
+    YY, mu_y, std_y = whiten_data(Y_sim)
+    ZZ, mu_z, std_z = whiten_data(Z_sim)
 
-        _, Yhat = kiv.fit_kiv(ZZ, XX, YY, xstar=((X_star_ilr - mu_x) / std_x))
-        Yhat = std_y * Yhat + mu_y
-        mse = np.mean((Yhat - Y_star) ** 2)
-        mse_all.append(mse)
-        beta_all.append(None)
-        print("Error: " + str(np.round(mse, 2)))
-        title = "KIVwhole"
-        title_all.append(title)
-        print("")
+    _, Yhat = kiv.fit_kiv(ZZ, XX, YY, xstar=((X_star_ilr - mu_x) / std_x))
+    Yhat = std_y * Yhat + mu_y
+    mse = np.mean((Yhat - Y_star) ** 2)
+    mse_all.append(mse)
+    beta_all.append(None)
+    print("Error: " + str(np.round(mse, 2)))
+    title = "KIV"
+    title_all.append(title)
+    print("")
 
-        print("---------------------------------------------------------------------------------------------")
-        print("<<<<<<<<<<<<<<<<<<<<<<<<<<< ONLY SECOND STAGE - Kernel Regression KIV >>>>>>>>>>>>>>>>>>>>>>>>>")
+    print("---------------------------------------------------------------------------------------------")
+    print("<<<<<<<<<<<<<<<<<<<<<<<<<<< ONLY SECOND STAGE - Kernel Regression KIV >>>>>>>>>>>>>>>>>>>>>>>>>")
 
-        kernel="linear"
-        from sklearn.kernel_ridge import KernelRidge
-        reg = KernelRidge(kernel=kernel).fit(XX, YY)
-        Yhat = reg.predict((X_star_ilr - mu_x) / std_x)
-        Yhat = std_y * Yhat + mu_y
-        mse = np.mean((Yhat - Y_star) ** 2)
-        mse_all.append(mse)
-        beta_all.append(None)
-        print("Error: " + str(np.round(mse, 2)))
-        title = "ONLY Second KIV"
-        title_all.append(title)
-        print("")
+    kernel="linear"
+    from sklearn.kernel_ridge import KernelRidge
+    reg = KernelRidge(kernel=kernel).fit(XX, YY)
+    Yhat = reg.predict((X_star_ilr - mu_x) / std_x)
+    Yhat = std_y * Yhat + mu_y
+    mse = np.mean((Yhat - Y_star) ** 2)
+    mse_all.append(mse)
+    beta_all.append(None)
+    print("Error: " + str(np.round(mse, 2)))
+    title = "ONLY Second KIV"
+    title_all.append(title)
+    print("")
 
 
-        print("---------------------------------------------------------------------------------------------")
-        print("<<<<<<<<<<<<<<<<<<<<<<<<<<< 2SLS - Kernel Regression KIV (manual) >>>>>>>>>>>>>>>>>>>>>>>>>")
+    print("---------------------------------------------------------------------------------------------")
+    print("<<<<<<<<<<<<<<<<<<<<<<<<<<< 2SLS - Kernel Regression KIV (manual) >>>>>>>>>>>>>>>>>>>>>>>>>")
 
-        reg = KernelRidge(kernel=kernel).fit(ZZ, XX)
-        Xhat_ilr = reg.predict(ZZ)
-        reg2 = KernelRidge(kernel=kernel).fit(Xhat_ilr, YY)
-        Yhat = reg2.predict((X_star_ilr - mu_x) / std_x)
-        Yhat = std_y * Yhat + mu_y
-        mse = np.mean((Yhat - Y_star) ** 2)
-        mse_all.append(mse)
-        beta_all.append(None)
-        print("Error: " + str(np.round(mse, 2)))
-        title = "KIV+KIV"
-        title_all.append(title)
-        print("")
+    reg = KernelRidge(kernel=kernel).fit(ZZ, XX)
+    Xhat_ilr = reg.predict(ZZ)
+    reg2 = KernelRidge(kernel=kernel).fit(Xhat_ilr, YY)
+    Yhat = reg2.predict((X_star_ilr - mu_x) / std_x)
+    Yhat = std_y * Yhat + mu_y
+    mse = np.mean((Yhat - Y_star) ** 2)
+    mse_all.append(mse)
+    beta_all.append(None)
+    print("Error: " + str(np.round(mse, 2)))
+    title = "Kernel+Kernel"
+    title_all.append(title)
+    print("")
 
     print("---------------------------------------------------------------------------------------------")
     print("<<<<<<<<<<<<<<<<<<<<<<<<<<<<< 2SLS - ILR ILR Regression Implementation >>>>>>>>>>>>>>>>>>>>>>>")

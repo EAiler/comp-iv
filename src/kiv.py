@@ -85,7 +85,7 @@ def get_k_matrix(x1: np.ndarray, x2: np.ndarray, v: float) -> np.ndarray:
     if len(set(x1)) < 3:
         v = .1
     # TODO : change that 28.5.2021
-    v = 0.5
+    v = 5
     x1 = np.repeat(x1[:, np.newaxis], n, 1)
     x2 = np.repeat(x2[:, np.newaxis].T, m, 0)
     return np.exp(- ((x1 - x2) ** 2) / (2. * v ** 2))

@@ -235,6 +235,10 @@ class LinearInstrumentModel:
 
         opt.solve()
         beta = opt.solution.StabSel.refit
+        try:
+            print(opt.solution)
+        except:
+            print("Error in computation")
         #beta = opt.solution.PATH.BETAS  # this has to be done when StabSel is False -> no refitting necessary, but Path
         # save parameters for prediction
 
