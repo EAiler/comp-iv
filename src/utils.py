@@ -16,23 +16,6 @@ from sklearn.gaussian_process.kernels import RBF, PairwiseKernel
 
 
 
-# =============================================================================
-# Compositional Data
-# =============================================================================
-def log_contrast(otu_table):
-  """
-  Make log contrast transformation
-
-  Parameter
-  ---------
-  otu_table: pandas DataFrame
-
-  Returns
-  -------
-  otu_table_log: pandas DataFrame (dim n-1)
-  """
-
-
 
 
 # =============================================================================

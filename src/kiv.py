@@ -15,18 +15,34 @@ Kerneldict = Dict[Text, np.ndarray]
 def median_inter(x: np.ndarray) -> float:
     A = np.repeat(x[:, np.newaxis], len(x), -1)
     dist = np.abs(A - A.T).ravel()
-    #return float(np.median(dist))
-    #print(float(np.median(dist)))
-    #return 5
+
     return (float(np.median(dist)))
 
 def mse(x: np.ndarray, y: np.ndarray) -> float:
-    """Mean squared error."""
+    """Mean squared error.
+    Parameters
+    ----------
+    x : np.ndarray
+    y : np.ndarray
+
+    Returns
+    -------
+    mse : float
+
+    """
     return float(np.mean((x - y) ** 2))
 
 
 def make_psd(k: np.ndarray, eps: float = 1e-10) -> np.ndarray:
-    """Make matrix positive semi-definite."""
+    """Make matrix positive semi-definite.
+    Parameters
+    ----------
+    k : np.ndarray
+        matrix to make positive semi-definite
+    eps : float=1e-10
+        precision parameter
+
+    """
     n = k.shape[0]
     return (k + k.T) / 2 + eps * np.eye(n)
 
@@ -35,7 +51,22 @@ def get_k(x: np.ndarray,
           y: np.ndarray,
           z: np.ndarray,
           x_vis: np.ndarray) -> Kerneldict:
-    """Setup all required matrices from input data."""
+    """Setup all required matrices from input data.
+
+    Parameters
+    ----------
+    x : np.ndarray
+    y : np.ndarray
+    z : np.ndarray
+    x_vis : np.ndarray
+
+
+    Returns
+    -------
+    results : dict
+        dictionary with different kernels and combinations
+
+    """
     vx = [median_inter(x_col) for x_col in x.T] if x.ndim > 1 else [median_inter(x)]
     vz = [median_inter(z_col) for z_col in z.T] if z.ndim > 1 else [median_inter(z)]
     x1, x2, y1, y2, z1, z2 = train_test_split(
@@ -56,7 +87,20 @@ def get_k(x: np.ndarray,
 
 
 def get_k_multi_matrix(x1: np.ndarray, x2: np.ndarray, v: list, agg_method: str = "additive") -> np.ndarray:
-    """ return multivariate kernel product matrix """
+    """ return multivariate kernel product matrix
+
+    Parameters
+    ----------
+    x1 : np.ndarray
+    x2 : np.ndarray
+    v : list
+    agg_method : str={"additive", "product"}
+        additive or multiplicative kernel aggregation methods
+
+    Returns
+    -------
+    K_multi : cumulative kernel
+    """
     K_multi = np.ones((x1.shape[0], x2.shape[0]))
     x1 = x1[:, np.newaxis] if x1.ndim < 2 else x1  # enlarge array for being able to proceed computations
     x2 = x2[:, np.newaxis] if x2.ndim < 2 else x2  # enlarge array for being able to proceed computations
@@ -71,13 +115,39 @@ def get_k_multi_matrix(x1: np.ndarray, x2: np.ndarray, v: list, agg_method: str 
             logging.warning("Specify multidimensional kernel function")
     return K_multi
 
+
 def get_k_entry(x1: np.ndarray, x2: np.ndarray, v: float) -> np.ndarray:
-    """ get k entry, calculates entry of the kernel matrix, uses radial basis function"""
+    """ get k entry, calculates entry of the kernel matrix, uses radial basis function
+
+    Parameters
+    ----------
+    x1 : np.ndarray
+    x2 : np.ndarray
+    v : float
+
+    Returns
+    -------
+    k_entry : float
+        entry of kernel matrix
+    """
     return np.exp(- (np.linalg.norm(x1 - x2, 2) ** 2) / (2. * v ** 2))
 
 
 def get_k_matrix(x1: np.ndarray, x2: np.ndarray, v: float) -> np.ndarray:
-    """Construct rbf kernel matrix with parameter v."""
+    """Construct rbf kernel matrix with parameter v.
+
+    Parameters
+    ----------
+    x1 : np.ndarray
+    x2 : np.ndarray
+    v : float
+
+
+    Returns
+    -------
+    k_entry : float
+
+    """
     m = len(x1)
     n = len(x2)
 
@@ -92,7 +162,20 @@ def get_k_matrix(x1: np.ndarray, x2: np.ndarray, v: float) -> np.ndarray:
 
 
 def kiv1_loss(df: Kerneldict, lam: float) -> float:
-    """Loss for tuning hyperparameter lambda."""
+    """Loss for tuning hyperparameter lambda.
+
+    Parameters
+    -----------
+    df : Kerneldict
+        dictionary of relevant kernels
+    lam : float
+        hyperparameter lambda
+
+    Returns
+    -------
+
+
+    """
     n = len(df["y1"])
     m = len(df["y2"])
 

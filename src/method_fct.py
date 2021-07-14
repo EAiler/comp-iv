@@ -54,13 +54,39 @@ class LinearInstrumentModel:
 
     # setter function
     def set_lambda_dirichlet(self, lam):
-        """set lambda in the optimization loop"""
+        """set lambda in the optimization loop
+
+        Parameters
+        ----------
+        lam : float
+            lambda parameter
+
+        Returns
+        -------
+
+
+        """
         self._lambda_dirichlet = lam
 
     # method section
     @staticmethod
     def add_term_to_zeros(mat, axis=0, add_term=0.0001):
-        """add a small term to the zeros along a specific axis"""
+        """add a small term to the zeros along a specific axis
+
+        Parameters
+        -----------
+        mat : np.ndarray
+            matrix as input
+        axis : int={0, 1}
+        add_term : float=0.0001
+            small count to add to the zero values
+
+        Returns
+        -------
+        X_n0 : np.ndarray
+            matrix with added zero terms
+
+        """
         # TODO : how to implement that sensibly in JAX
         X_n0 = np.zeros(mat.shape)
         for rr in range(len(mat)):
@@ -72,7 +98,19 @@ class LinearInstrumentModel:
 
 
     def gradient_fun_alpha(self, alpha):
-        """ this is the gradient of the objective function for beta """
+        """ this is the gradient of the objective function for alpha
+
+        Parameters
+        ----------
+        alpha : np.ndarray
+            current alpha value during optimization
+
+        Returns
+        -------
+        grad : np.ndarray
+            gradient
+
+        """
         alpha0 = alpha[:self.p]
         alphaT = alpha[self.p:]
         g = np.exp((alpha0 * np.ones((self.n,1))) + (alphaT * self.Z[..., np.newaxis]))
@@ -99,7 +137,19 @@ class LinearInstrumentModel:
 
 
     def likelihood2(self, params):
-        """ log likelihood function for dirichlet regression """
+        """ log likelihood function for dirichlet regression
+
+        Parameters
+        ----------
+        params : dict
+            dictionary of current alpha parameters for dirichlet regression
+
+        Returns
+        -------
+        log_likelihood : float
+            current log likelihood value during optimization
+
+        """
         alpha0 = params["alpha0"]   # p x 1
            # p x 1 -> would just need to add more parameters for each new instrument...?
 
@@ -117,7 +167,19 @@ class LinearInstrumentModel:
 
 
     def likelihood2_lassopenalty(self, params):
-        """ log likelihood function for the dirichlet regression with lasso penalty for variable selection """
+        """ log likelihood function for the dirichlet regression with lasso penalty for variable selection
+
+        Parameters
+        ----------
+        params : dict
+            dictionary of current alpha parameters for dirichlet regression
+
+        Returns
+        -------
+        log_likelihood : float
+            current penalized log likelihood value during optimization
+
+        """
         if self.Z.ndim < 2:
             alphaT = params["alphaT"]
         else:
@@ -126,17 +188,27 @@ class LinearInstrumentModel:
         return log_likelihood_penalty
 
 
-    def fit_dirichlet(self, lower_bound=None, upper_bound=None, verbose=False):
-        """ parameter estimation by a dirichlet regression, estimate alpha coefficient """
-        # TODO : check out which bounds they are actually setting. Seems like they take an estimate from the Dirichlet
-        #  MLE for some of the beta
-        #if lower_bound is None:
-        #    lower_bound = np.hstack([self.beta_init[:self.p], -50 * np.ones((1 + self.q) * self.p)])
-        #if upper_bound is None:
-        #    upper_bound = np.hstack([self.beta_init[:self.p], 50 * np.ones((1 + self.q) * self.p)])
+    def fit_dirichlet(self, verbose=False):
+        """ parameter estimation by a dirichlet regression, estimate alpha coefficient and writes it into the attribute
+        params_alpha of the class
 
-        # TODO : for each dimension in the middle variable I need an extra regression. (at least if I want to allow for
-        #  more than one IV)
+        Parameters
+        ----------
+        verbose : bool=False
+            whether to print additional information
+
+
+        Returns
+        -------
+        BIC : dict
+            BIC value of models for different lambda parameters
+        estimates : dict
+            log likelihood estimates of models for different lambda parameters
+        alpha_params : np.ndarray
+            array with best alpha parameters, means for minimial BIC
+
+        """
+
         BIC = {}
         estimates = {}
         num_inst = 0 if self.Z.ndim < 2 else self.Z.shape[1]
@@ -172,7 +244,19 @@ class LinearInstrumentModel:
             return BIC, estimates, self.params_alpha
 
     def predict_dirichlet(self, Z=None):
-        """make prediction from estimated parameters"""
+        """make prediction from estimated parameters
+
+        Parameters
+        ----------
+        Z : np.ndarray=None
+            matrix of instrument value entries
+
+        Returns
+        -------
+        Xhat : np.ndarray
+            matrix of estimated compositional X values from first stage dirichlet model
+
+        """
         if Z is None:
             Z = self.Z
 
@@ -192,7 +276,22 @@ class LinearInstrumentModel:
         return Xhat
 
     def fit_log_contrast_fast(self, X=None, threshold=0.7):
-        """fit log contrast regression with Chris optimization package"""
+        """fit log contrast regression with cLasso optimization package
+
+        Parameters
+        -----------
+        X : np.ndarray=None
+            compositional X matrix
+        threshold : float
+            hyperparameter, threshold for log contrast regression in CLasso
+
+        Returns
+        -------
+        opt : dict
+            optimization results as a struct
+
+
+        """
 
         if X is None:
             X=self.Xhat
@@ -235,7 +334,19 @@ class LinearInstrumentModel:
         return opt
 
     def predict_log_contrast(self, X=None):
-        """predict from the estimated log contrast model"""
+        """predict from the estimated log contrast model
+
+        Parameters
+        ----------
+        X : np.ndarray=None
+            compositional X matrix
+
+        Returns
+        -------
+        Yhat : np.ndarray
+            estimated outcome from second stage estimation
+
+        """
         if X is None:
             X = self.Xhat
         beta0 = self.params_beta["beta0"]
@@ -254,7 +365,19 @@ class ALR_Model:
 
 
     def fit(self, X_sim, Z_sim):
-        """fit model from mediation paper """
+        """fit two stage least squares model with alr coordinates, only one stage is fit
+
+        Parameters
+        ----------
+        X_sim : np.ndarray
+            compositional X matrix
+        Z_sim : np.ndarray
+            matrix with the data entries of the instrumental variable
+
+        Returns
+        -------
+
+        """
         p = X_sim.shape[1]
         ZZ_sim = sm.add_constant(Z_sim)
         #M = np.log(X_sim)[:, :p - 1]
@@ -273,7 +396,19 @@ class ALR_Model:
         self.m_0 = cmp.alr_inv(alt_m_0)
 
     def predict(self, Z_sim):
-        """predict from estimated parameters """
+        """predict from estimated parameter
+
+         Parameters
+         ----------
+         Z_sim : np.ndarray
+            matrix with instrumental data entries
+
+         Returns
+         -------
+         Xhat : np.ndarray
+            estimated matrix for first stage alr regression, compositional data
+
+         """
         n = Z_sim.shape[0]
         p = len(self.m_0)
 
@@ -285,7 +420,37 @@ class ALR_Model:
 
 
 def dirichlet_logcontrast(Z, X, Y, Xstar, mle, lambda_dirichlet, max_iter, logcontrast_threshold):
-    """Model with 1st stage Dirichlet Regression and 2nd stage LogContrast Regression"""
+    """Model with 1st stage Dirichlet Regression and 2nd stage LogContrast Regression
+
+    Parameters
+    ----------
+    Z : np.ndarray
+        matrix with instrument entries
+    X : np.ndarray
+        matrix with compositional data entries
+    Y : np.ndarray
+        matrix with outcome
+    Xstar : np.ndarray
+        matrix with interventional compositional data entires
+    mle : np.ndarray
+        initial alpha_0 value for dirichlet regression
+    lambda_dirichlet : np.ndarray
+        array of possible lambda values for dirichlet regression, hyperparameter
+    max_iter : int
+        number of maximum iterations for log contrast regression
+    logcontrast_threshold : float
+        hyperparameter for log contrast regression between 0 and 1
+
+    Returns
+    -------
+    beta : np.ndarray
+        estimated true beta values
+    Xhat : np.ndarray
+        estimated Xhat values from the first stage prediction
+    Yhat : np.ndarray
+        estimated Yhat values from both regressions, causal outcome value
+
+    """
     key = jax.random.PRNGKey(1991)
     n, p = X.shape
     n, num_inst = Z.shape
@@ -316,8 +481,24 @@ def dirichlet_logcontrast(Z, X, Y, Xstar, mle, lambda_dirichlet, max_iter, logco
     return beta, Xhat, Yhat
 
 
-def ilr_noregression(Z, X, verbose=False):
-    """Model with 2SLS approach but with a ilr transformed variable"""
+def ilr_noregression(Z, X):
+    """Model for first stage ilr regression, has no second stage
+
+    Parameters
+    ----------
+    Z : np.ndarray
+        matrix with instrument entries
+    X : np.ndarray
+        matrix with compositional data entries
+
+    Returns
+    -------
+    alpha : np.ndarray
+        vector for estimated first stage
+    Xhat : np.ndarray
+        matrix with first stage estimation, compositional data
+
+    """
     # use 2SLS on ilr transformation
     n, p = X.shape
     Z_2sls = sm.add_constant(onp.array(Z))
@@ -326,11 +507,30 @@ def ilr_noregression(Z, X, verbose=False):
     first = sm.OLS(X_ilr, Z_2sls).fit()
     Xhat = first.predict(Z_2sls)
     alpha = first.params
-#    #V = cmp._gram_schmidt_basis(p)
     return alpha, cmp.ilr_inv(Xhat)
 
+
 def noregression_ilr(X, Y, Xstar, verbose):
-    """Model with 2SLS approach but with a ilr transformed variable"""
+    """Model for second stage ilr regression, has no first stage
+
+    Parameters
+    ----------
+    X : np.ndarray
+        matrix with compositional data entries
+    Y : np.ndarray
+        matrix with outcome
+    Xstar : np.ndarray
+        matrix with interventional compositional data entires
+    verbose : bool
+        logical whether to print information of second stage regression
+
+    Returns
+    -------
+    beta : np.ndarray
+            estimated true beta values
+    Yhat : np.ndarray
+        estimated Yhat values from both regressions, causal outcome value
+    """
     # use 2SLS on ilr transformation
     n, p = X.shape
     X_n0 = LinearInstrumentModel.add_term_to_zeros(X)
@@ -341,12 +541,31 @@ def noregression_ilr(X, Y, Xstar, verbose):
         print(second.summary())
     Yhat = second.predict(X_star_ilr)
     beta = second.params
-    #V = cmp._gram_schmidt_basis(p)
     return beta, Yhat
 
 
 def ilr_ilr(Z, X, Y, Xstar):
-    """Model with 2SLS approach but with a ilr transformed variable"""
+    """Model with 2SLS approach but with a ilr transformed variable, has BOTH stages
+
+    Parameters
+    ----------
+    Z : np.ndarray
+        matrix with instrument entries
+    X : np.ndarray
+        matrix with compositional data entries
+    Y : np.ndarray
+        matrix with outcome
+    Xstar : np.ndarray
+        matrix with interventional compositional data entires
+
+    Returns
+    -------
+    beta : np.ndarray
+            estimated true beta values
+    Yhat : np.ndarray
+        estimated Yhat values from both regressions, causal outcome value
+
+    """
     # use 2SLS on ilr transformation
     n, p = X.shape
     Z_2sls = sm.add_constant(onp.array(Z))
@@ -364,7 +583,30 @@ def ilr_ilr(Z, X, Y, Xstar):
 
 
 def ilr_logcontrast(Z, X, Y, Xstar, logcontrast_threshold):
-    """Model with 1st stage as OLS regression on ilr transformed components and 2nd stage as log contrast model"""
+    """Model with 1st stage as OLS regression on ilr transformed components and 2nd stage as log contrast model
+
+    Parameters
+    ----------
+    Z : np.ndarray
+        matrix with instrument entries
+    X : np.ndarray
+        matrix with compositional data entries
+    Y : np.ndarray
+        matrix with outcome
+    Xstar : np.ndarray
+        matrix with interventional compositional data entires
+    logcontrast_threshold : float
+        hyperparameter for log contrast regression between 0 and 1
+
+    Returns
+    -------
+    beta : np.ndarray
+        estimated true beta values
+    Xhat : np.ndarray
+        estimated Xhat values from the first stage prediction
+    Yhat : np.ndarray
+        estimated Yhat values from both regressions, causal outcome value
+    """
 
     Z_2sls = sm.add_constant(onp.array(Z))
     X_n0 = LinearInstrumentModel.add_term_to_zeros(X)
@@ -393,7 +635,28 @@ def noregression_logcontrast(Z, X, Y, Xstar, logcontrast_threshold):
     """
     Benchmark model which ignores the instrumental variable approach and fits a log contrast regression with classo
     from X to Y
+
+    Parameters
+    ----------
+    Z : np.ndarray
+        matrix with instrument entries
+    X : np.ndarray
+        matrix with compositional data entries
+    Y : np.ndarray
+        matrix with outcome
+    Xstar : np.ndarray
+        matrix with interventional compositional data entires
+    logcontrast_threshold : float
+        hyperparameter for log contrast regression between 0 and 1
+
+    Returns
+    -------
+    beta : np.ndarray
+        estimated true beta values
+    Yhat : np.ndarray
+        estimated Yhat values from both regressions, causal outcome value
     """
+
     X_n0 = LinearInstrumentModel.add_term_to_zeros(X)
     LinIVModel_benchmark = LinearInstrumentModel(X, Y, None, None,
                                                          lambda_dirichlet=None,
