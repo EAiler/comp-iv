@@ -1,4 +1,5 @@
-
+fig/
+notebooks/temp
 *.csv
 2_LinearSimulation_medium.ipynb
 1_RealData_SimpsonDiversity.ipynb
