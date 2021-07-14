@@ -6,33 +6,20 @@ import os
 
 from skbio.stats.composition import ilr, ilr_inv
 from sklearn.linear_model import LinearRegression
-
 import jax
-
-
 from statsmodels.sandbox.regression.gmm import IV2SLS
 import numpy as onp
-
-
 from jax.ops import index, index_update
 from jax.lax import lgamma
 from classo import classo_problem
-
 from jax import numpy as np
 from jax.scipy.special import digamma
-# from jax.scipy.optimize import minimize as scipy_minimize
-import scipy
-from scipy.optimize import Bounds  # TODO change that to the jax interface once this is implemented
-
 from jax_minimize_wrapper import minimize
-
-import sys
-sys.path.append(os.getcwd())
-sys.path.append(os.path.join(os.getcwd(), "generalIVmodel/"))
-
 import skbio.stats.composition as cmp
 
 
+import sys
+sys.path.append(os.getcwd())
 
 
 function_value = []

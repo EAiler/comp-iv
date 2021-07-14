@@ -1,6 +1,4 @@
 
-
-
 from jax import numpy as np
 from rpy2.robjects.packages import importr
 from rpy2.robjects import FloatVector, IntVector
@@ -9,15 +7,6 @@ importr('SpiecEasi')
 importr('Compositional')
 importr('vegan')
 import random as rm
-
-
-
-
-
-# ----------------------------------------------------------------------------------------------------------------------
-# SAMPLING FROM NEGATIVE BINOMIAL
-# ----------------------------------------------------------------------------------------------------------------------
-# Simulation for multivariate log normal
 
 
 def multi_negative_binomial(p, mu, Sigma, dispersion, num_samples, ps=None):
@@ -64,7 +53,31 @@ def multi_negative_binomial(p, mu, Sigma, dispersion, num_samples, ps=None):
 
     return X_sim
 
+
 def whiten_data(col, verbose=False):
+    """whiten the data, if verbose set to true also returns the mean and std
+
+    Parameters
+    ----------
+    col : np.ndarray
+        matrix of data that should be whitened
+    verbose : bool=False
+        bool if set to true will output also the mean and std of the whitened data
+
+    Returns
+    -------
+    X : np.ndarray
+        whitened data
+
+    if verbose == True
+    mu_c : float
+        mean of whitened data
+    std_c : float
+        std of whitened data
+    X : np.ndarray
+        whitened data
+
+    """
     mu_c = col.mean()
     std_c = col.std()
     if verbose:
@@ -72,15 +85,24 @@ def whiten_data(col, verbose=False):
     else:
         return (col - col.mean()) / col.std()
 
+
 def diversity(X, method="shannon"):
-    """X has rows with the samples and the columns are the bacteria"""
+    """Computation of diversity, X has rows with the samples and the columns are the bacteria
+
+    Parameters
+    ----------
+    X : np.ndarray
+        matrix with microbiom data, the rows are the different samples and the columns hold the different bacteria
+    method : {"shannon", "simpson"}
+        string for the different diversity methods, computation is done via the R package vegan
+
+    """
     diversity_vec = []
     for i in range(X.shape[0]):
         vec_r = FloatVector(X[i, :])
         div = r["diversity"](vec_r, index=method)
         div = np.asarray(div)
         diversity_vec.append(div)
-
 
     return np.array(diversity_vec)
 

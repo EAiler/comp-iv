@@ -16,12 +16,11 @@ import skbio.stats.composition as cmp
 
 import sys
 sys.path.append(os.getcwd())
-#sys.path.append(os.path.join(os.getcwd(), "generalIVmodel/"))
 
 
 import boundiv
 import kiv
-from simulate_data_fct import sim_IV_ilr_linear, sim_IV_ilr_nonlinear, sim_IV_lognormal_linear, sim_IV_ilr_linear_normalZ
+from simulate_data_fct import sim_IV_ilr_linear, sim_IV_ilr_nonlinear, sim_IV_negbinomial
 from method_fct import noregression_ilr, noregression_logcontrast, dirichlet_logcontrast, ilr_logcontrast, ALR_Model
 from method_fct import ilr_ilr, ilr_noregression
 
@@ -35,11 +34,66 @@ from method_fct import LinearInstrumentModel
 
 def run_methods_confidence_interval(key, num_iteration,
                                     n, p, num_inst, mu_c, c_X, alpha0, alphaT, c_Y, beta0, betaT,
-                                    is_nonlinear=False, is_lognormal=False, is_ZNormal=False,
-                                    fit_kiv=True,
+                                    is_nonlinear=False, is_negbinom=False,
                                     num_star=200, logcontrast_threshold=0.7, max_iter=500,
                                     lambda_dirichlet=np.array([0.1, 1, 2, 5, 10])):
-    """ run models for different seeds """
+    """Run all available methods to compare the performance
+
+    Parameters
+    ----------
+    key : jax PRNG key
+    num_iteration : int
+        number of iterations for computation of the confidence interval
+    n : int
+        number of samples for the IV model
+    p : int
+        number of microbiota in X
+    num_inst : int
+        number of instruments
+    mu_c : np.ndarray / int
+        different interpretation:
+        for negative binomial, this is the compositional confounding vector;
+        for linear, this is the mean of the confounder
+    c_X  : int
+        different interpretation:
+        for negative binomial, this is the dispersion parameter for the negative binomial distribution;
+        for linear, this is the standard deviation of the confounder
+    alpha0 : float
+        intercept of the relationship between Z and X
+    alphaT : np.ndarray
+        slope of the relationship between Z and X
+    c_Y : np.ndarray / int
+        different interpretation:
+        for negative binomial, vector of how composition influence Y;
+        for linear, int of how confounder influences Y
+    beta0 : float
+        intercept of causal relationship of X on Y
+    betaT : np.ndarray
+        slope of causal relationship of X on Y
+    is_nonlinear : bool
+        if relationship of X and Y should be modelled as a non-linear function
+    is_negbinom : bool
+        if relationship of Z on X should be modelled within a zero-inflated negative binomial model
+    num_star : int=200
+        dimension of interventional X that should be created
+    logcontrast_threshold : float=0.7
+        hyperparameter for the log contrast regression, between 0 and 1
+    max_iter : int=500
+        hyperparameter for log contrast regression, maximum number of iterations to find a solution
+    lambda_dirichlet : np.ndarray=np.array([0.1, 1, 2, 5, 10])
+        hyperparameter for the dirichlet regression, provides array of penalty lambda parameters to choose from
+
+
+    Returns
+    -------
+    df_beta : pd.DataFrame
+        dataframe containing all beta results
+    df_mse: pd.DataFrame
+        dataframe containing all oos mse results
+    mse_large_confidence : dict
+        dictionary containing the iterations of the confidence interval where the oos mse was unnaturally
+        large for debugging
+    """
 
     mse_confidence = []
     title_confidence = []
@@ -66,8 +120,8 @@ def run_methods_confidence_interval(key, num_iteration,
                 beta0=beta0,
                 betaT=betaT,
                 num_star=num_star)
-        elif is_lognormal:
-            confounder, Z_sim, X_sim, Y_sim, X_star, Y_star = sim_IV_lognormal_linear(key,
+        elif is_negbinom:
+            confounder, Z_sim, X_sim, Y_sim, X_star, Y_star = sim_IV_negbinomial(key,
                                     n=n,
                                     p=p,
                                     num_inst=num_inst,
@@ -79,20 +133,8 @@ def run_methods_confidence_interval(key, num_iteration,
                                     beta0=beta0,
                                     betaT=betaT,
                                     num_star=num_star)
-        elif is_ZNormal:
-            confounder, Z_sim, X_sim, Y_sim, X_star, Y_star = sim_IV_ilr_linear_normalZ(
-                subkey,
-                n=n,
-                p=p,
-                num_inst=num_inst,
-                mu_c=mu_c,
-                c_X=c_X,
-                alpha0=alpha0,
-                alphaT=alphaT,
-                c_Y=c_Y,
-                beta0=beta0,
-                betaT=betaT,
-                num_star=num_star)
+            logcontrast_threshold=0.3
+
         else:
             confounder, Z_sim, X_sim, Y_sim, X_star, Y_star = sim_IV_ilr_linear(
                 subkey,
@@ -112,20 +154,9 @@ def run_methods_confidence_interval(key, num_iteration,
         X_sim = LinearInstrumentModel.add_term_to_zeros(X_sim)
         X_star = LinearInstrumentModel.add_term_to_zeros(X_star)
 
-        if p < 10:
-            try:
-                mle = dirichlet.mle(X_sim[(np.abs(Z_sim)<=0.2).sum(axis=1)==p,:],
-                                    tol=.001)
-            except:
-                mle = np.ones((p,)) / p
-        else:
-            mle = np.ones((p,)) / p
-
-
 
         mse_all, beta_all, title_all, mse_large = run_methods_all(Z_sim, X_sim, Y_sim, X_star, Y_star, betaT,
-                        mle, lambda_dirichlet, max_iter, logcontrast_threshold,
-                        fit_kiv=fit_kiv)
+                        lambda_dirichlet, max_iter, logcontrast_threshold)
 
         beta_confidence.append(beta_all)
         mse_confidence.append(mse_all)
@@ -157,8 +188,6 @@ def run_methods_confidence_interval(key, num_iteration,
     beta_all_2 = [V.T @ i if i is not None else np.repeat(np.nan, p) for i in beta_all]
     df_beta = pd.DataFrame(zip(title_all, beta_all_2), columns=["Method", "Beta"])
 
-    #betaT_log = V.T @betaT
-
     fig_mse = plot_mse_results(df_mse)
     fig_mse.show()
     fig_beta = plot_beta_results(df_beta, betaT)
@@ -169,14 +198,58 @@ def run_methods_confidence_interval(key, num_iteration,
 
 
 def run_methods_all(Z_sim, X_sim, Y_sim, X_star, Y_star, beta_ilr_true,
-                    mle, lambda_dirichlet, max_iter, logcontrast_threshold,
-                   fit_kiv=False):
-    """Run all available methods to compare the performance"""
+                    lambda_dirichlet, max_iter, logcontrast_threshold, mse_large_threshold=40):
+    """Run all available methods to compare the performance
+
+    Parameters
+    ----------
+    Z_sim : np.ndarray
+        sample matrix of instrument
+    X_sim : np.ndarray
+        sample matrix of microbiome data, compositional data
+    Y_sim : np.ndarray
+        sample matrix of output
+    X_star : np.ndarray
+        sample matrix of interventional microbiome data, compositional data
+    Y_star : np.ndarray
+        sample matrix of true causal effect based on the interventional data X_star
+    mle : np.ndarray
+        starting point for dirichlet regression in the first stage
+    lambda_dirichlet : float
+        penalizing lambda used for dirichlet regression in the first stage
+    max_iter : int
+        maximum numver if iterations for log contrast regression in the second stage
+    mse_large_threshold : int=40
+        all data that produces a oos mse over the threshold value is saved in a dictionary attached to mse_large for de-
+        bugging purposes
+
+
+    Returns
+    -------
+    mse_all : np.ndarray
+        out of sample mean squared error for all methods that have been tested
+    beta_all : np.ndarray
+        beta values for all methods that have been tested
+    title_all : np.ndarray
+        array of strings which show which item in mse_all, beta_all belongs to which method
+    mse_large : None or dict
+        dictionary holding the data which produces a oos mse over the mse_large_threshold value
+    """
     n, p = X_sim.shape
     V = cmp._gram_schmidt_basis(p)
     mse_all = []
     title_all = []
     beta_all = []
+
+    # estimate starting point for dirichlet regression
+    if p < 10:
+        try:
+            mle = dirichlet.mle(X_sim[(np.abs(Z_sim) <= 0.2).sum(axis=1) == p, :],
+                                tol=.001)
+        except:
+            mle = np.ones((p,)) / p
+    else:
+        mle = np.ones((p,)) / p
 
     print("---------------------------------------------------------------------------------------------")
     print("<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<< ONLY Second Stage - ILR Regression >>>>>>>>>>>>>>>>>>>>>>>>>>>")
@@ -271,7 +344,6 @@ def run_methods_all(Z_sim, X_sim, Y_sim, X_star, Y_star, beta_ilr_true,
     title_all.append(title)
     print("")
 
-    #if fit_kiv:
     print("---------------------------------------------------------------------------------------------")
     print("<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<< 2SLS - Kernel Regression KIV >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>")
 
@@ -300,7 +372,7 @@ def run_methods_all(Z_sim, X_sim, Y_sim, X_star, Y_star, beta_ilr_true,
     print("---------------------------------------------------------------------------------------------")
     print("<<<<<<<<<<<<<<<<<<<<<<<<<<< ONLY SECOND STAGE - Kernel Regression KIV >>>>>>>>>>>>>>>>>>>>>>>>>")
 
-    kernel="linear"
+    kernel = "linear"
     from sklearn.kernel_ridge import KernelRidge
     reg = KernelRidge(kernel=kernel).fit(XX, YY)
     Yhat = reg.predict((X_star_ilr - mu_x) / std_x)
@@ -346,7 +418,7 @@ def run_methods_all(Z_sim, X_sim, Y_sim, X_star, Y_star, beta_ilr_true,
 
 
 
-    if any(i>40 for i in mse_all[3:]):
+    if any(i>mse_large_threshold for i in mse_all[3:]):
         mse_large = {"X_sim": X_sim,
                      "Y_sim": Y_sim,
                      "X_star": X_star,
@@ -358,7 +430,45 @@ def run_methods_all(Z_sim, X_sim, Y_sim, X_star, Y_star, beta_ilr_true,
 
 
 def run_diversity_estimation_methods(Z, X, Y, Ytrue=None, methods=["OLS", "2SLS", "KIV", "Bounds"]):
-    """take diversity estimates and run all available methods"""
+    """take diversity estimates and run all available methods, prints out first stage F-test to give an indication
+    of instrument strength
+
+    Parameters
+    ----------
+    Z : np.ndarray
+        matrix of instrument entries
+    X : np.ndarray
+        matrix of diversity estimates
+    Y : np.ndarray
+        matrix of weight entries
+    Ytrue : np.ndarray
+        matrix of causal weight entries, are standardized the same way as Y is
+    methods : list=["OLS", "2SLS", "KIV", "Bounds"]
+        list of methods that should be run on the data
+
+
+    Results
+    -------
+    x : np.ndarray
+        standardized matrix of diversity estimates
+    y : np.ndarray
+        standardized matrix of outcome entries
+    Ytrue : np.ndarray
+        standardized matrix of outcome entries for causal Ytrue input
+    xstar : np.ndarray
+        interventional x value for true causal effect
+    xstar_bound : np.ndarray
+        interventional x value for bound evaluation
+    ystar_ols : np.ndarray
+        outcome when estimating causal effect via OLS
+    ystar_2sls : np.ndarray
+        outcome when estimating causal effect via 2SLS
+    ystar_kiv : np.ndarray
+        outcome when estimating causal effect via KIV
+    results : np.ndarray
+        outcome of bounding method
+
+    """
 
     def whiten_data(col):
         mu = col.mean()

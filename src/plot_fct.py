@@ -231,9 +231,9 @@ def plot_beta_results(df_beta, betaT,
 
     fig = go.Figure()
     if beta_zero:
-        num_coef_list = set((np.abs(betaT) < 0.2) * np.array(range(len(betaT)))) - {0}
+        num_coef_list = set((np.abs(betaT) < 0.09) * np.array(range(len(betaT)))) - {0}
     else:
-        num_coef_list = set((np.abs(betaT) > 0.2) * np.array(range(len(betaT))))
+        num_coef_list = set((np.abs(betaT) > 0.09) * np.array(range(len(betaT))))
 
 
 
