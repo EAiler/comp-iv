@@ -1,0 +1,13 @@
+
+*.csv
+2_LinearSimulation_medium.ipynb
+1_RealData_SimpsonDiversity.ipynb
+2_LinearSimulation_weak.ipynb
+5_SemiSynthetic.ipynb
+1_RealData_ShannonDiversity.ipynb
+3_HighLinearSimulation.ipynb
+0_CreationOfData.ipynb
+4_HighLogContrastSimulation_inst20_run20.ipynb
+
+
+
