@@ -2,7 +2,6 @@
 
 This is the code for reconstructing the experiments in [A Causal view on Compositional Data](https://arxiv.org/abs/2106.11234), E. Ailer, C.L. Müller and N. Kilbertus.
 
-
 ## Setup
 
 First, clone this repository.
@@ -19,8 +18,8 @@ python -m pip install -r requirements.txt
 ```
 
 ## Experiments
+The experiments are explained step by step in individual jupyter notebooks.
 
-To follow the different experiments, please navigate to the folder "notebooks"
 ```sh
 cd notebooks
 ```
@@ -34,12 +33,5 @@ The notebook `1_RealData_Diversity`is centered around the motivational experimen
 ### Compositional IV Estimation
 
 The other notebooks `2_MicrobiomeAnalysis_SimulatedData` and `2_MicrobiomeAnalysis_RealData` include the higher dimensional setup with compositional `X`. They include the exact parameter settings used in the paper. Moreover, they provide the possibility to exchange parameters or use own data to apply the proposed methods.
-
-
-
-
-
-
-
 
 
