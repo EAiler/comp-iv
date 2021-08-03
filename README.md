@@ -1,6 +1,6 @@
 # A causal view on compositional data
 
-This is the code for reconstructing the experiments in [A Causal view on Compositional Data](https://arxiv.org/abs/2106.11234), E. Ailer, C.L. Müller and N. Kilbertus.
+This is the code for reconstructing the experiments in [A Causal view on Compositional Data](https://arxiv.org/abs/2106.11234) (E. Ailer, C.L. Müller and N. Kilbertus).
 
 ## Setup
 
